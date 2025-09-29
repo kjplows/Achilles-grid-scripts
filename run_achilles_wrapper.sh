@@ -57,16 +57,27 @@ spack load fife-utils@3.7.8%gcc@11.4.1
 ifdh cp -D ${INPUT_IMAGE} ${WORKDIR}/ 2> /dev/null
 ifdh cp -D ${INPUT_CMD} ${WORKDIR}/ 2> /dev/null
 if [[ ! -z ${INPUT_CACHE} ]] ; then
-   ifdh cp -r -D ${INPUT_CACHE} ${WORKDIR}/ 2> /dev/null
+    #mkdir ${WORKDIR}/$(basename ${INPUT_CACHE})
+    #ifdh cp -r -D ${INPUT_CACHE} ${WORKDIR}/$(basename ${INPUT_CACHE}) 2> /dev/null
+    ifdh cp -D ${INPUT_CACHE} ${WORKDIR}/ 2> /dev/null
 fi
-tar zxf $(basename ${INPUT_IMAGE})
+ls -lt ${WORKDIR}
+tar zxf ${WORKDIR}/$(basename ${INPUT_IMAGE})
 set -eux
 BASE_IMAGE=${WORKDIR}/achilles_sandbox #RETHERE fix this
 BASE_CMD=$(basename ${INPUT_CMD})
 cp ${WORKDIR}/${BASE_CMD} ${BASE_IMAGE}/achilles/achilles-src/run/
 if [[ ! -z ${INPUT_CACHE} ]] ; then
-    echo "Copying cache: ${WORKDIR}/$(basename ${INPUT_CACHE}) --> ${BASE_IMAGE}/achilles/achilles-src/run/"
-    cp -r ${WORKDIR}/$(basename ${INPUT_CACHE}) ${BASE_IMAGE}/achilles/achilles-src/run/
+    #mkdir ${BASE_IMAGE}/achilles/achilles-src/run/.achilles
+    tar zxvf ${WORKDIR}/$(basename ${INPUT_CACHE})
+    echo
+    echo
+    echo "ls ${WORKDIR}/"
+    ls ${WORKDIR}/
+    #echo "Copying cache: ${WORKDIR}/$(basename ${INPUT_CACHE})/* --> ${BASE_IMAGE}/achilles/achilles-src/run/.achilles"
+    echo "Copying cache: ${WORKDIR}/.achilles --> ${BASE_IMAGE}/achilles/achilles-src/run/.achilles"
+    #cp -r ${WORKDIR}/$(basename ${INPUT_CACHE})/* ${BASE_IMAGE}/achilles/achilles-src/run/.achilles
+    cp -r ${WORKDIR}/.achilles ${BASE_IMAGE}/achilles/achilles-src/run/
 fi
 echo
 echo "ls -lt ${BASE_IMAGE}/achilles/achilles-src/run"
@@ -76,9 +87,11 @@ sleep 2
 BIND_MOUNTS="-B ${BASE_IMAGE}/achilles/achilles-src/run:/achilles/achilles-src/run \
 		 -B /cvmfs:/cvmfs"
 if [[ ! -z ${INPUT_RUNCARD} ]] ; then
-    echo "Mounting $(dirname ${INPUT_RUNCARD}) to /achilles/achilles-src/runcards"
-    RUNCARD_DIR=$(dirname ${INPUT_RUNCARD})
-    BIND_MOUNTS=${BIND_MOUNTS}" -B ${RUNCARD_DIR}/:/achilles/achilles-src/runcards"
+    #echo "Mounting $(dirname ${INPUT_RUNCARD}) to /achilles/achilles-src/runcards"
+    #RUNCARD_DIR=$(dirname ${INPUT_RUNCARD})
+    #BIND_MOUNTS=${BIND_MOUNTS}" -B ${RUNCARD_DIR}/:/achilles/achilles-src/runcards"
+    echo "Copying runcard from ${INPUT_RUNCARD} to ${BASE_IMAGE}/achilles/achilles-src/runcards/"
+    ifdh cp -D ${INPUT_RUNCARD} ${BASE_IMAGE}/achilles/achilles-src/runcards/ 2> /dev/null
 fi
 echo
 echo "About to run apptainer on image: ${BASE_IMAGE}"

@@ -77,7 +77,7 @@ if [ ! -z ${INPUT_CACHE} ] && [ ! $(echo ${INPUT_CACHE} | grep '/pnfs') ] ; then
     echo "You've asked for an input cache that's not on /pnfs, ignoring input cache"
     INPUT_CACHE=""
 fi
-if [ ! -z ${INPUT_CACHE} ] && [ ! -d ${INPUT_CACHE} ] ; then
+if [ ! -z ${INPUT_CACHE} ] && [ ! -f ${INPUT_CACHE} ] ; then
     echo "Error - input cache ${INPUT_CACHE} not found. Exiting"
     exit 1
 fi
@@ -100,10 +100,10 @@ cmd="jobsub_submit -e IFDH_DEBUG=1 --group=sbnd --role=Analysis \
 	file://$(pwd)/run_achilles_wrapper.sh \
 	--input ${INPUT_IMAGE} --cmd ${INPUT_CMD} --output ${OUTPUT_DIR}"
 if [[ ! -z ${INPUT_CACHE} ]] ; then
-    cmd=${cmd}"--cache ${INPUT_CACHE}"
+    cmd=${cmd}" --cache ${INPUT_CACHE}"
 fi
 if [[ ! -z ${INPUT_RUNCARD} ]] ; then
-    cmd=${cmd}"--runcard ${INPUT_RUNCARD}"
+    cmd=${cmd}" --runcard ${INPUT_RUNCARD}"
 fi
 
 echo ${cmd}
