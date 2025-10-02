@@ -13,14 +13,24 @@ Usage:
       $0 -i input_image.tar.gz 
          -c input_wrapper.sh 
 	 -o output_dir 
+	 -N num_jobs
 	 [--cache cache-directory] 
          [--runcard run-card.yml]
+	 [--nevents N events]
+	 [--disk size_in_GB]
+	 [--memory mem_in_GB]
+	 [--lifetime life_in_hours]
 
     -i, --input     input image
     -o, --output    Output dir on scratch
     -c, --cmd       Command script to execute on ACHILLES container
     --cache         Directory of pre-computed ACHILLES xsec (for speeding up execution)
     --runcard       Runcard to execute (on /pnfs: will bind-mount the directory of the runcard)
+    --nevents       N events (default 10000)
+    -N, --jobs      Number of jobs to submit (default 1)
+    --disk	    Size of disk to request (in GB) (default 8)
+    --memory	    Memory to request (in GB) (default 2)
+    --lifetime 	    Expected lifetime (in hours) (default 1)
     -h     Print this help message and exit
 EOF
 
@@ -33,6 +43,10 @@ INPUT_CMD=""
 INPUT_CACHE=""
 INPUT_RUNCARD=""
 NUM_JOBS=1
+DISKSIZE=8
+MEMORY=2
+LIFETIME=1
+NEVENTS=10000
 
 # getopts only supports single-dash arguments. Boo!
 # Parse arguments manually
@@ -43,6 +57,11 @@ while [[ $# -gt 0 ]] ; do
 	-c|--cmd) INPUT_CMD="$2" ; shift 2 ;;
 	--cache) INPUT_CACHE="$2" ; shift 2 ;;
 	--runcard) INPUT_RUNCARD="$2" ; shift 2 ;;
+	--nevents) NEVENTS="$2" ; shift 2 ;;
+	-N|--jobs) NUM_JOBS="$2" ; shift 2 ;;
+	--disk) DISKSIZE="$2" ; shift 2 ;;
+	--memory) MEMORY="$2" ; shift 2 ;;
+	--lifetime) LIFETIME="$2" ; shift 2 ;;
 	-h|--help) usage ;;
 	*) echo "Invalid option: $1" ; usage ;;
     esac
@@ -77,7 +96,7 @@ if [ ! -z ${INPUT_CACHE} ] && [ ! $(echo ${INPUT_CACHE} | grep '/pnfs') ] ; then
     echo "You've asked for an input cache that's not on /pnfs, ignoring input cache"
     INPUT_CACHE=""
 fi
-if [ ! -z ${INPUT_CACHE} ] && [ ! -d ${INPUT_CACHE} ] ; then
+if [ ! -z ${INPUT_CACHE} ] && [ ! -f ${INPUT_CACHE} ] ; then
     echo "Error - input cache ${INPUT_CACHE} not found. Exiting"
     exit 1
 fi
@@ -94,16 +113,17 @@ fi
 
 # submit the script with arguments
 cmd="jobsub_submit -e IFDH_DEBUG=1 --group=sbnd --role=Analysis \
-	--memory=2GB --disk=4GB --resource-provides=usage_model=DEDICATED,OPPORTUNISTIC \
-	--expected-lifetime=1h \
+	--memory=${MEMORY}GB --disk=${DISKSIZE}GB 
+	--resource-provides=usage_model=DEDICATED,OPPORTUNISTIC \
+	--expected-lifetime=${LIFETIME}h \
 	--auth-methods=token -N ${NUM_JOBS} \
 	file://$(pwd)/run_achilles_wrapper.sh \
-	--input ${INPUT_IMAGE} --cmd ${INPUT_CMD} --output ${OUTPUT_DIR}"
+	--input ${INPUT_IMAGE} --cmd ${INPUT_CMD} --output ${OUTPUT_DIR} --nevents ${NEVENTS}"
 if [[ ! -z ${INPUT_CACHE} ]] ; then
-    cmd=${cmd}"--cache ${INPUT_CACHE}"
+    cmd=${cmd}" --cache ${INPUT_CACHE}"
 fi
 if [[ ! -z ${INPUT_RUNCARD} ]] ; then
-    cmd=${cmd}"--runcard ${INPUT_RUNCARD}"
+    cmd=${cmd}" --runcard ${INPUT_RUNCARD}"
 fi
 
 echo ${cmd}
